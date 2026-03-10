@@ -68,10 +68,14 @@ async function checkMarkdownSupport(tabId, url) {
   }
 
   try {
+    const controller = new AbortController();
     const res = await fetch(url, {
-      method: "HEAD",
+      method: "GET",
       headers: { Accept: "text/markdown" },
+      signal: controller.signal,
     });
+    // Abort immediately — we only need the response headers, not the body
+    controller.abort();
 
     const contentType = res.headers.get("content-type") || "";
     const supported = contentType.includes("text/markdown");

@@ -4,7 +4,7 @@ async function getCurrentTab() {
 }
 
 function buildCurlCommand(url) {
-  return `curl -sI -H 'Accept: text/markdown' '${url}'`;
+  return `curl -s -o /dev/null -D - -H 'Accept: text/markdown' '${url}'`;
 }
 
 function render(result, url) {
