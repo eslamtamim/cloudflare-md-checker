@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Markdown for Agents Detector",
+  "version": "1.0.0",
+  "description": "Detects if a page supports markdown responses (Cloudflare Markdown for Agents)",
+  "permissions": ["tabs", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/grey.png",
+      "48": "icons/grey.png",
+      "128": "icons/grey.png"
+    }
+  },
+  "icons": {
+    "16": "icons/grey.png",
+    "48": "icons/grey.png",
+    "128": "icons/grey.png"
+  }
+}

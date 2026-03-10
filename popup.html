@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Markdown for Agents</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      width: 300px;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 16px 12px;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .header-icon {
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .header-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .status-section {
+      padding: 18px 16px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-badge {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .status-text {
+      flex: 1;
+    }
+
+    .status-label {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .status-label.supported { color: #22c55e; }
+    .status-label.not-supported { color: #ef4444; }
+    .status-label.checking { color: #94a3b8; }
+    .status-label.error { color: #f59e0b; }
+
+    .status-sub {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .details {
+      padding: 0 16px 14px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 6px 0;
+      border-top: 1px solid #1e293b;
+      gap: 12px;
+    }
+
+    .detail-key {
+      font-size: 11px;
+      color: #64748b;
+      font-family: "SF Mono", "Fira Code", monospace;
+      white-space: nowrap;
+      padding-top: 1px;
+    }
+
+    .detail-value {
+      font-size: 11px;
+      color: #cbd5e1;
+      font-family: "SF Mono", "Fira Code", monospace;
+      text-align: right;
+      word-break: break-all;
+    }
+
+    .detail-value.highlight {
+      color: #22c55e;
+      font-weight: 600;
+    }
+
+    .curl-section {
+      padding: 0 16px 16px;
+    }
+
+    .curl-label {
+      font-size: 10px;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+
+    .curl-box {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 8px 10px;
+      position: relative;
+    }
+
+    .curl-code {
+      font-size: 10px;
+      font-family: "SF Mono", "Fira Code", monospace;
+      color: #94a3b8;
+      word-break: break-all;
+      line-height: 1.5;
+      padding-right: 28px;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: #334155;
+      border: none;
+      border-radius: 4px;
+      padding: 3px 6px;
+      cursor: pointer;
+      font-size: 10px;
+      color: #94a3b8;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .copy-btn:hover {
+      background: #475569;
+      color: #e2e8f0;
+    }
+
+    .copy-btn.copied {
+      background: #166534;
+      color: #86efac;
+    }
+
+    .recheck-btn {
+      display: block;
+      width: calc(100% - 32px);
+      margin: 0 16px 16px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 7px;
+      color: #94a3b8;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .recheck-btn:hover {
+      background: #334155;
+      color: #e2e8f0;
+    }
+
+    #error-msg {
+      padding: 0 16px 14px;
+      font-size: 11px;
+      color: #94a3b8;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="header-icon">📋</span>
+    <span class="header-title">Markdown for Agents</span>
+  </div>
+
+  <div class="status-section">
+    <span class="status-badge" id="status-emoji">⏳</span>
+    <div class="status-text">
+      <div class="status-label checking" id="status-label">Checking…</div>
+      <div class="status-sub" id="status-sub"></div>
+    </div>
+  </div>
+
+  <div class="details" id="details" style="display:none">
+    <div class="detail-row" id="row-tokens" style="display:none">
+      <span class="detail-key">x-markdown-tokens</span>
+      <span class="detail-value highlight" id="val-tokens">—</span>
+    </div>
+    <div class="detail-row" id="row-signal" style="display:none">
+      <span class="detail-key">content-signal</span>
+      <span class="detail-value" id="val-signal">—</span>
+    </div>
+    <div class="detail-row" id="row-ct">
+      <span class="detail-key">content-type</span>
+      <span class="detail-value" id="val-ct">—</span>
+    </div>
+  </div>
+
+  <div class="curl-section" id="curl-section" style="display:none">
+    <div class="curl-label">Try it yourself</div>
+    <div class="curl-box">
+      <div class="curl-code" id="curl-code"></div>
+      <button class="copy-btn" id="copy-btn">Copy</button>
+    </div>
+  </div>
+
+  <div id="error-msg" style="display:none"></div>
+
+  <button class="recheck-btn" id="recheck-btn">↻ Re-check this page</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>
