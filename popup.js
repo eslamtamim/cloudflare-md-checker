@@ -4,71 +4,74 @@ async function getCurrentTab() {
 }
 
 function buildCurlCommand(url) {
-  return `curl -s -o /dev/null -D - -H 'Accept: text/markdown' '${url}'`;
+  return `curl -s -o /dev/null -D - \\\n  -H 'Accept: text/markdown' \\\n  '${url}'`;
+}
+
+function setDot(state) {
+  const dot = document.getElementById("header-dot");
+  dot.className = "header-dot";
+  if (state === "active") dot.classList.add("active");
+  if (state === "pulse") dot.classList.add("pulse");
 }
 
 function render(result, url) {
+  const block = document.getElementById("status-block");
   const labelEl = document.getElementById("status-label");
-  const emojiEl = document.getElementById("status-emoji");
+  const textEl = document.getElementById("status-text");
   const subEl = document.getElementById("status-sub");
   const detailsEl = document.getElementById("details");
   const curlSection = document.getElementById("curl-section");
-  const errorMsg = document.getElementById("error-msg");
+  const errorBlock = document.getElementById("error-block");
 
   // Reset
+  block.className = "status-block";
   labelEl.className = "status-label";
-  errorMsg.style.display = "none";
+  errorBlock.style.display = "none";
+  detailsEl.style.display = "none";
+  curlSection.style.display = "none";
 
   if (result.status === "checking") {
-    emojiEl.textContent = "⏳";
-    labelEl.classList.add("checking");
-    labelEl.textContent = "Checking…";
+    setDot("pulse");
+    textEl.textContent = "Checking";
     subEl.textContent = "";
-    detailsEl.style.display = "none";
-    curlSection.style.display = "none";
-    return;
-  }
-
-  if (result.status === "error") {
-    emojiEl.textContent = "⚠️";
-    labelEl.classList.add("error");
-    labelEl.textContent = "Check failed";
-    subEl.textContent = "Could not reach the page";
-    errorMsg.style.display = "block";
-    errorMsg.textContent = result.error || "Unknown error";
-    detailsEl.style.display = "none";
-    curlSection.style.display = "none";
     return;
   }
 
   if (result.status === "unknown") {
-    emojiEl.textContent = "❓";
-    labelEl.classList.add("checking");
-    labelEl.textContent = "No result yet";
-    subEl.textContent = "Navigate to a page to check";
-    detailsEl.style.display = "none";
-    curlSection.style.display = "none";
+    setDot("");
+    textEl.textContent = "No result";
+    subEl.textContent = "navigate to a page to check";
+    return;
+  }
+
+  if (result.status === "error") {
+    setDot("");
+    block.classList.add("error");
+    textEl.textContent = "Check failed";
+    subEl.textContent = "could not reach the page";
+    errorBlock.style.display = "block";
+    errorBlock.textContent = result.error || "unknown error";
     return;
   }
 
   // status === "done"
   if (result.supported) {
-    emojiEl.textContent = "✅";
+    setDot("active");
+    block.classList.add("supported");
     labelEl.classList.add("supported");
-    labelEl.textContent = "Markdown supported";
-    subEl.textContent = "This page serves text/markdown";
+    textEl.textContent = "Supported";
+    subEl.textContent = "text/markdown served on this page";
   } else {
-    emojiEl.textContent = "❌";
+    setDot("");
+    block.classList.add("not-supported");
     labelEl.classList.add("not-supported");
-    labelEl.textContent = "Not supported";
-    subEl.textContent = "No text/markdown content-type detected";
+    textEl.textContent = "Not supported";
+    subEl.textContent = "no text/markdown content-type detected";
   }
 
   // Details
   detailsEl.style.display = "block";
-
-  const ctEl = document.getElementById("val-ct");
-  ctEl.textContent = result.contentType || "—";
+  document.getElementById("val-ct").textContent = result.contentType || "—";
 
   const rowTokens = document.getElementById("row-tokens");
   const valTokens = document.getElementById("val-tokens");
@@ -100,7 +103,6 @@ async function init() {
   const tab = await getCurrentTab();
   if (!tab) return;
 
-  // Request result from background
   const result = await chrome.runtime.sendMessage({
     type: "GET_TAB_RESULT",
     tabId: tab.id,
@@ -108,12 +110,11 @@ async function init() {
 
   render(result, tab.url);
 
-  // Copy button
   document.getElementById("copy-btn").addEventListener("click", () => {
     const text = document.getElementById("curl-code").textContent;
     navigator.clipboard.writeText(text).then(() => {
       const btn = document.getElementById("copy-btn");
-      btn.textContent = "Copied!";
+      btn.textContent = "Copied";
       btn.classList.add("copied");
       setTimeout(() => {
         btn.textContent = "Copy";
@@ -122,20 +123,15 @@ async function init() {
     });
   });
 
-  // Re-check button
   document.getElementById("recheck-btn").addEventListener("click", async () => {
     const currentTab = await getCurrentTab();
     if (!currentTab?.url) return;
-
-    // Clear domain cache
     try {
       const urlObj = new URL(currentTab.url);
       await chrome.storage.session.remove(urlObj.hostname);
     } catch (e) {
       // ignore
     }
-
-    // Trigger re-check by reloading (simplest approach that guarantees onUpdated fires)
     chrome.tabs.reload(currentTab.id);
     window.close();
   });

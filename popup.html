@@ -5,215 +5,317 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Markdown for Agents</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    :root {
+      --orange: #F6821F;
+      --orange-dim: rgba(246, 130, 31, 0.08);
+      --orange-border: rgba(246, 130, 31, 0.3);
+      --bg: #ffffff;
+      --surface: #f7f7f7;
+      --surface-2: #f0f0f0;
+      --border: #e8e8e8;
+      --text: #111111;
+      --text-mid: #222222;
+      --text-dim: #555555;
+      --mono: "IBM Plex Mono", "Courier New", monospace;
     }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
       width: 300px;
-      background: #0f172a;
-      color: #e2e8f0;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
     }
 
+    /* ── Header ── */
     .header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 14px 16px 12px;
-      border-bottom: 1px solid #1e293b;
+      gap: 9px;
+      padding: 12px 14px 11px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
     }
 
-    .header-icon {
-      font-size: 20px;
-      line-height: 1;
+    .header-logo {
+      height: 18px;
+      width: auto;
+      flex-shrink: 0;
     }
 
-    .header-title {
-      font-size: 13px;
+    .header-name {
+      font-size: 11px;
       font-weight: 600;
-      color: #94a3b8;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
+      color: var(--text-mid);
     }
 
-    .status-section {
-      padding: 18px 16px 14px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    .header-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      margin-left: auto;
+      transition: background 0.3s;
+    }
+    .header-dot.active { background: var(--orange); box-shadow: 0 0 6px var(--orange); }
+    .header-dot.pulse {
+      background: var(--orange);
+      animation: pulse 1s ease-in-out infinite;
     }
 
-    .status-badge {
-      font-size: 28px;
-      line-height: 1;
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
     }
 
-    .status-text {
-      flex: 1;
+    /* ── Status Block ── */
+    .status-block {
+      padding: 16px 14px 14px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
     }
+
+    .status-block::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--text-dim);
+      transition: background 0.3s;
+    }
+
+    .status-block.supported::before { background: var(--orange); }
+    .status-block.not-supported::before { background: #ddd; }
+    .status-block.error::before { background: #e55; }
 
     .status-label {
-      font-size: 16px;
+      font-size: 18px;
       font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text-mid);
+      line-height: 1;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .status-label.supported { color: #22c55e; }
-    .status-label.not-supported { color: #ef4444; }
-    .status-label.checking { color: #94a3b8; }
-    .status-label.error { color: #f59e0b; }
+    .status-label.supported { color: var(--text); }
+    .status-label.not-supported { color: #999; }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: var(--text-dim);
+    }
+
+    .status-block.supported .status-indicator {
+      background: var(--orange);
+      box-shadow: 0 0 8px rgba(246,130,31,0.5);
+    }
+
+    .status-block.not-supported .status-indicator {
+      background: transparent;
+      border: 1.5px solid #444;
+    }
 
     .status-sub {
-      font-size: 11px;
-      color: #64748b;
-      margin-top: 2px;
+      font-size: 10.5px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      letter-spacing: 0.02em;
+      padding-left: 18px;
     }
 
+    /* ── Details Table ── */
     .details {
-      padding: 0 16px 14px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
     }
 
     .detail-row {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      padding: 6px 0;
-      border-top: 1px solid #1e293b;
-      gap: 12px;
+      align-items: baseline;
+      gap: 10px;
+      padding: 5px 0;
+    }
+
+    .detail-row + .detail-row {
+      border-top: 1px solid var(--border);
     }
 
     .detail-key {
-      font-size: 11px;
-      color: #64748b;
-      font-family: "SF Mono", "Fira Code", monospace;
+      font-family: var(--mono);
+      font-size: 9.5px;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
       white-space: nowrap;
-      padding-top: 1px;
+      text-transform: lowercase;
     }
 
     .detail-value {
-      font-size: 11px;
-      color: #cbd5e1;
-      font-family: "SF Mono", "Fira Code", monospace;
+      font-family: var(--mono);
+      font-size: 9.5px;
+      color: var(--text-mid);
       text-align: right;
       word-break: break-all;
     }
 
     .detail-value.highlight {
-      color: #22c55e;
+      color: var(--orange);
       font-weight: 600;
     }
 
+    /* ── Curl Block ── */
     .curl-section {
-      padding: 0 16px 16px;
+      padding: 10px 14px 12px;
+      border-bottom: 1px solid var(--border);
     }
 
     .curl-label {
-      font-size: 10px;
-      color: #475569;
+      font-size: 9px;
+      color: var(--text-dim);
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 6px;
+      letter-spacing: 0.1em;
+      margin-bottom: 7px;
+      font-weight: 600;
     }
 
     .curl-box {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 6px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
       padding: 8px 10px;
       position: relative;
     }
 
     .curl-code {
-      font-size: 10px;
-      font-family: "SF Mono", "Fira Code", monospace;
-      color: #94a3b8;
+      font-family: var(--mono);
+      font-size: 9px;
+      color: #333;
       word-break: break-all;
-      line-height: 1.5;
-      padding-right: 28px;
+      line-height: 1.6;
+      padding-right: 36px;
     }
+
+    .curl-code .cmd { color: var(--orange); }
+    .curl-code .flag { color: #777; }
+    .curl-code .url { color: var(--text-mid); }
 
     .copy-btn {
       position: absolute;
-      top: 6px;
-      right: 6px;
-      background: #334155;
-      border: none;
-      border-radius: 4px;
-      padding: 3px 6px;
+      top: 7px;
+      right: 7px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      padding: 2px 7px;
       cursor: pointer;
-      font-size: 10px;
-      color: #94a3b8;
-      transition: background 0.15s, color 0.15s;
+      font-size: 9px;
+      font-family: var(--mono);
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: border-color 0.15s, color 0.15s;
     }
 
     .copy-btn:hover {
-      background: #475569;
-      color: #e2e8f0;
+      border-color: var(--orange);
+      color: var(--orange);
     }
 
     .copy-btn.copied {
-      background: #166534;
-      color: #86efac;
+      border-color: var(--orange);
+      color: var(--orange);
     }
 
+    /* ── Error ── */
+    .error-block {
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 9.5px;
+      color: #cc4444;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Recheck Button ── */
     .recheck-btn {
-      display: block;
-      width: calc(100% - 32px);
-      margin: 0 16px 16px;
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      padding: 7px;
-      color: #94a3b8;
-      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      padding: 10px 14px;
+      background: transparent;
+      border: none;
       cursor: pointer;
-      transition: background 0.15s, color 0.15s;
+      font-size: 10.5px;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      font-weight: 500;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      transition: color 0.15s, background 0.15s;
     }
 
     .recheck-btn:hover {
-      background: #334155;
-      color: #e2e8f0;
+      color: var(--orange);
+      background: var(--orange-dim);
     }
 
-    #error-msg {
-      padding: 0 16px 14px;
-      font-size: 11px;
-      color: #94a3b8;
-      word-break: break-word;
+    .recheck-icon {
+      width: 11px;
+      height: 11px;
+      opacity: 0.6;
     }
+
+    .recheck-btn:hover .recheck-icon { opacity: 1; }
   </style>
 </head>
 <body>
+
+  <!-- Header -->
   <div class="header">
-    <span class="header-icon">📋</span>
-    <span class="header-title">Markdown for Agents</span>
+    <img class="header-logo" src="cf.svg" alt="Cloudflare" />
+    <span class="header-name">Markdown for Agents</span>
+    <div class="header-dot" id="header-dot"></div>
   </div>
 
-  <div class="status-section">
-    <span class="status-badge" id="status-emoji">⏳</span>
-    <div class="status-text">
-      <div class="status-label checking" id="status-label">Checking…</div>
-      <div class="status-sub" id="status-sub"></div>
+  <!-- Status -->
+  <div class="status-block" id="status-block">
+    <div class="status-label" id="status-label">
+      <span class="status-indicator" id="status-indicator"></span>
+      <span id="status-text">Checking</span>
     </div>
+    <div class="status-sub" id="status-sub"></div>
   </div>
 
+  <!-- Details -->
   <div class="details" id="details" style="display:none">
     <div class="detail-row" id="row-tokens" style="display:none">
       <span class="detail-key">x-markdown-tokens</span>
-      <span class="detail-value highlight" id="val-tokens">—</span>
+      <span class="detail-value highlight" id="val-tokens"></span>
     </div>
     <div class="detail-row" id="row-signal" style="display:none">
       <span class="detail-key">content-signal</span>
-      <span class="detail-value" id="val-signal">—</span>
+      <span class="detail-value" id="val-signal"></span>
     </div>
-    <div class="detail-row" id="row-ct">
+    <div class="detail-row">
       <span class="detail-key">content-type</span>
       <span class="detail-value" id="val-ct">—</span>
     </div>
   </div>
 
+  <!-- Curl -->
   <div class="curl-section" id="curl-section" style="display:none">
     <div class="curl-label">Try it yourself</div>
     <div class="curl-box">
@@ -222,9 +324,16 @@
     </div>
   </div>
 
-  <div id="error-msg" style="display:none"></div>
+  <!-- Error -->
+  <div class="error-block" id="error-block" style="display:none"></div>
 
-  <button class="recheck-btn" id="recheck-btn">↻ Re-check this page</button>
+  <!-- Recheck -->
+  <button class="recheck-btn" id="recheck-btn">
+    <svg class="recheck-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M13.65 2.35A8 8 0 1 0 15 8h-2a6 6 0 1 1-1.05-3.4L10 6h4V2l-0.35 0.35z" fill="currentColor"/>
+    </svg>
+    Re-check this page
+  </button>
 
   <script src="popup.js"></script>
 </body>

@@ -2,41 +2,27 @@
 const tabCache = new Map();
 
 const ICONS = {
-  green: {
-    16: "icons/green.png",
-    48: "icons/green.png",
-    128: "icons/green.png",
-  },
-  red: {
-    16: "icons/red.png",
-    48: "icons/red.png",
-    128: "icons/red.png",
-  },
-  grey: {
-    16: "icons/grey.png",
-    48: "icons/grey.png",
-    128: "icons/grey.png",
-  },
+  active:   { 16: "icons/active.png",   48: "icons/active.png",   128: "icons/active.png" },
+  inactive: { 16: "icons/inactive.png", 48: "icons/inactive.png", 128: "icons/inactive.png" },
 };
 
-async function setIcon(tabId, color) {
+async function setIcon(tabId, state) {
   try {
-    await chrome.action.setIcon({ tabId, path: ICONS[color] });
+    await chrome.action.setIcon({ tabId, path: ICONS[state] });
   } catch (e) {
     // Tab may have been closed
   }
 }
 
-async function setBadge(tabId, color) {
-  const colors = { green: "#22c55e", red: "#ef4444", grey: "#9ca3af" };
+async function setBadge(tabId, state) {
   try {
     await chrome.action.setBadgeBackgroundColor({
       tabId,
-      color: colors[color],
+      color: state === "active" ? "#F6821F" : "#9ca3af",
     });
     await chrome.action.setBadgeText({
       tabId,
-      text: color === "green" ? "MD" : color === "red" ? "" : "...",
+      text: state === "active" ? "MD" : "",
     });
   } catch (e) {
     // Tab may have been closed
@@ -46,8 +32,8 @@ async function setBadge(tabId, color) {
 async function checkMarkdownSupport(tabId, url) {
   // Mark as checking
   tabCache.set(tabId, { status: "checking", url });
-  await setIcon(tabId, "grey");
-  await setBadge(tabId, "grey");
+  await setIcon(tabId, "inactive");
+  await setBadge(tabId, "inactive");
 
   // Check domain cache in session storage
   let domainKey;
@@ -58,9 +44,9 @@ async function checkMarkdownSupport(tabId, url) {
     if (cached[domainKey]) {
       const result = cached[domainKey];
       tabCache.set(tabId, { ...result, url });
-      const color = result.supported ? "green" : "red";
-      await setIcon(tabId, color);
-      await setBadge(tabId, color);
+      const state = result.supported ? "active" : "inactive";
+      await setIcon(tabId, state);
+      await setBadge(tabId, state);
       return;
     }
   } catch (e) {
@@ -98,14 +84,14 @@ async function checkMarkdownSupport(tabId, url) {
       await chrome.storage.session.set({ [domainKey]: result });
     }
 
-    const color = supported ? "green" : "red";
-    await setIcon(tabId, color);
-    await setBadge(tabId, color);
+    const state = supported ? "active" : "inactive";
+    await setIcon(tabId, state);
+    await setBadge(tabId, state);
   } catch (e) {
     const result = { status: "error", url, supported: false, error: e.message };
     tabCache.set(tabId, result);
-    await setIcon(tabId, "grey");
-    await setBadge(tabId, "grey");
+    await setIcon(tabId, "inactive");
+    await setBadge(tabId, "inactive");
   }
 }
 
@@ -120,8 +106,8 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   const entry = tabCache.get(tabId);
   if (!entry) {
-    await setIcon(tabId, "grey");
-    await setBadge(tabId, "grey");
+    await setIcon(tabId, "inactive");
+    await setBadge(tabId, "inactive");
   }
 });
 
