@@ -21,7 +21,7 @@ You can also manually re-check any page using the **Re-check this page** button 
 ## Verify manually with curl
 
 ```sh
-curl -s -o /dev/null -D - -H 'Accept: text/markdown' 'https://example.com'
+curl -s -o /dev/null -D - -H 'Accept: text/markdown' 'https://blog.cloudflare.com/markdown-for-agents'
 ```
 
 Look for `content-type: text/markdown` in the response headers.
