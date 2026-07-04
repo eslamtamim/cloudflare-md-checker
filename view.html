@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Markdown for Agents — Viewer</title>
+  <style>
+    :root {
+      --orange: #F6821F;
+      --bg: #ffffff;
+      --surface: #f7f7f7;
+      --border: #e8e8e8;
+      --text: #111111;
+      --text-dim: #555555;
+      --mono: "IBM Plex Mono", "Courier New", monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+    }
+
+    .header-url {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .copy-btn {
+      margin-left: auto;
+      flex-shrink: 0;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 5px 12px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text-dim);
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .copy-btn:hover { border-color: var(--orange); color: var(--orange); }
+    .copy-btn.copied { border-color: var(--orange); color: var(--orange); }
+
+    #content {
+      padding: 20px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    #status {
+      padding: 20px;
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    #status.error { color: #cc4444; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="header-url" id="header-url"></span>
+    <button class="copy-btn" id="copy-btn" style="display:none">Copy</button>
+  </div>
+  <div id="status">Loading…</div>
+  <pre id="content" style="display:none"></pre>
+  <script src="view.js"></script>
+</body>
+</html>
