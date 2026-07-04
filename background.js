@@ -1,5 +1,10 @@
 // Cache tab results in memory (service worker lifetime)
 const tabCache = new Map();
+const mdContentCache = new Map();
+
+// Track which tab is showing the viewer for which source tab
+const sourceToViewer = new Map();
+const viewerTabs = new Map();
 
 const ICONS = {
   active:   { 16: "icons/active.png",   48: "icons/active.png",   128: "icons/active.png" },
@@ -31,6 +36,7 @@ async function setBadge(tabId, state) {
 
 async function checkMarkdownSupport(tabId, url) {
   // Mark as checking
+  mdContentCache.delete(tabId);
   tabCache.set(tabId, { status: "checking", url });
   await setIcon(tabId, "inactive");
   await setBadge(tabId, "inactive");
@@ -95,6 +101,47 @@ async function checkMarkdownSupport(tabId, url) {
   }
 }
 
+async function getMarkdownContent(tabId, url) {
+  const cached = mdContentCache.get(tabId);
+  if (cached) return cached;
+
+  try {
+    const res = await fetch(url, { headers: { Accept: "text/markdown" } });
+    const text = await res.text();
+    const result = {
+      ok: true,
+      text,
+      contentType: res.headers.get("content-type") || "",
+    };
+    mdContentCache.set(tabId, result);
+    return result;
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+async function toggleViewer(sourceTabId, sourceUrl) {
+  const existingViewerTabId = sourceToViewer.get(sourceTabId);
+  if (existingViewerTabId) {
+    try {
+      await chrome.tabs.remove(existingViewerTabId);
+    } catch (e) {
+      // Viewer tab may already be closed
+    }
+    sourceToViewer.delete(sourceTabId);
+    viewerTabs.delete(existingViewerTabId);
+    return;
+  }
+
+  const viewerUrl =
+    chrome.runtime.getURL("view.html") +
+    "?tabId=" + sourceTabId +
+    "&url=" + encodeURIComponent(sourceUrl);
+  const viewerTab = await chrome.tabs.create({ url: viewerUrl });
+  sourceToViewer.set(sourceTabId, viewerTab.id);
+  viewerTabs.set(viewerTab.id, sourceTabId);
+}
+
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete") return;
   const url = tab.url || "";
@@ -111,11 +158,47 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   }
 });
 
+// Keep the source-tab <-> viewer-tab tracking in sync as tabs close
+chrome.tabs.onRemoved.addListener((tabId) => {
+  const sourceTabId = viewerTabs.get(tabId);
+  if (sourceTabId !== undefined) {
+    sourceToViewer.delete(sourceTabId);
+    viewerTabs.delete(tabId);
+  }
+  sourceToViewer.delete(tabId);
+});
+
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command !== "toggle-md-viewer") return;
+
+  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!activeTab) return;
+
+  const viewerBaseUrl = chrome.runtime.getURL("view.html");
+  if (activeTab.url && activeTab.url.startsWith(viewerBaseUrl)) {
+    // Already on the viewer page — toggle its MD/Text mode in place
+    chrome.runtime.sendMessage({ type: "TOGGLE_VIEW_MODE", viewerTabId: activeTab.id });
+    return;
+  }
+
+  const cached = tabCache.get(activeTab.id);
+  if (!cached?.supported) return;
+
+  await getMarkdownContent(activeTab.id, activeTab.url);
+  await toggleViewer(activeTab.id, activeTab.url);
+});
+
 // Respond to popup requests for tab data
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "GET_TAB_RESULT") {
     const result = tabCache.get(message.tabId) || { status: "unknown" };
     sendResponse(result);
+  }
+  if (message.type === "GET_MARKDOWN_CONTENT") {
+    getMarkdownContent(message.tabId, message.url).then(sendResponse);
+  }
+  if (message.type === "TOGGLE_VIEWER") {
+    toggleViewer(message.tabId, message.url).then(() => sendResponse({ ok: true }));
   }
   return true; // keep channel open for async
 });

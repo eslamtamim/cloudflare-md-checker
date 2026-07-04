@@ -238,6 +238,50 @@
       color: var(--orange);
     }
 
+    /* ── Markdown Actions ── */
+    .md-actions {
+      display: flex;
+      gap: 8px;
+      padding: 10px 14px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .md-btn {
+      flex: 1;
+      padding: 7px 0;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: var(--mono);
+      color: var(--text-mid);
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .md-btn:hover:not(:disabled) {
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+
+    .md-btn.copied {
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+
+    .md-btn.failed {
+      border-color: #cc4444;
+      color: #cc4444;
+    }
+
+    .md-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
     /* ── Error ── */
     .error-block {
       padding: 10px 14px;
@@ -322,6 +366,12 @@
       <div class="curl-code" id="curl-code"></div>
       <button class="copy-btn" id="copy-btn">Copy</button>
     </div>
+  </div>
+
+  <!-- Markdown Actions -->
+  <div class="md-actions" id="md-actions">
+    <button class="md-btn" id="copy-md-btn" disabled title="Available when this page supports Markdown for Agents">Copy MD</button>
+    <button class="md-btn" id="view-md-btn" disabled title="Available when this page supports Markdown for Agents">View MD</button>
   </div>
 
   <!-- Error -->

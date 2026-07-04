@@ -20,5 +20,14 @@
     "16": "icons/inactive.png",
     "48": "icons/inactive.png",
     "128": "icons/inactive.png"
+  },
+  "commands": {
+    "toggle-md-viewer": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+V",
+        "mac": "Command+Shift+V"
+      },
+      "description": "Open/close the Markdown viewer for this page, or toggle MD/Text mode if already viewing"
+    }
   }
 }
