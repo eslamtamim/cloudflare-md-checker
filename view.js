@@ -1,77 +1,68 @@
 let myTabId = null;
 let sourceTabId = null;
 let sourceUrl = "";
-let mode = "md"; // "md" | "text"
+let mode = "text"; // "text" (raw markdown source) | "rendered" (parsed HTML)
 let mdResult = null;
-let textResult = null;
 
-function currentResult() {
-  return mode === "md" ? mdResult : textResult;
+function visibleContentEl() {
+  return mode === "rendered"
+    ? document.getElementById("rendered-content")
+    : document.getElementById("content");
 }
 
 function render() {
   const statusEl = document.getElementById("status");
   const contentEl = document.getElementById("content");
+  const renderedEl = document.getElementById("rendered-content");
   const modeBtn = document.getElementById("mode-btn");
 
   modeBtn.style.display = "inline-block";
-  modeBtn.textContent = mode === "md" ? "View as Text" : "View as MD";
+  modeBtn.textContent = mode === "rendered" ? "View as Text" : "View as MD";
 
-  const result = currentResult();
-  if (!result) {
+  if (!mdResult) {
     statusEl.style.display = "block";
     statusEl.classList.remove("error");
     statusEl.textContent = "Loading…";
     contentEl.style.display = "none";
+    renderedEl.style.display = "none";
     return;
   }
 
-  if (result.ok) {
-    statusEl.style.display = "none";
-    contentEl.style.display = "block";
-    contentEl.textContent = result.text;
-  } else {
+  if (!mdResult.ok) {
     statusEl.style.display = "block";
     statusEl.classList.add("error");
-    statusEl.textContent =
-      "Failed to load " + (mode === "md" ? "markdown" : "text") + ": " + (result.error || "unknown error");
+    statusEl.textContent = "Failed to load markdown: " + (mdResult.error || "unknown error");
     contentEl.style.display = "none";
+    renderedEl.style.display = "none";
+    return;
+  }
+
+  statusEl.style.display = "none";
+  if (mode === "rendered") {
+    contentEl.style.display = "none";
+    renderedEl.style.display = "block";
+    renderedEl.innerHTML = DOMPurify.sanitize(marked.parse(mdResult.text));
+  } else {
+    renderedEl.style.display = "none";
+    contentEl.style.display = "block";
+    contentEl.textContent = mdResult.text;
   }
 }
 
-async function ensureLoaded() {
-  if (mode === "md" && !mdResult) {
-    mdResult = await chrome.runtime.sendMessage({
-      type: "GET_MARKDOWN_CONTENT",
-      tabId: sourceTabId,
-      url: sourceUrl,
-    });
-  }
-  if (mode === "text" && !textResult) {
-    textResult = await chrome.runtime.sendMessage({
-      type: "GET_RAW_TEXT_CONTENT",
-      tabId: sourceTabId,
-      url: sourceUrl,
-    });
-  }
+function toggleMode() {
+  mode = mode === "rendered" ? "text" : "rendered";
   render();
-}
-
-async function toggleMode() {
-  mode = mode === "md" ? "text" : "md";
-  render();
-  await ensureLoaded();
 }
 
 function selectContentOnly() {
   document.addEventListener("keydown", (e) => {
     const isSelectAll = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "a";
     if (!isSelectAll) return;
-    const contentEl = document.getElementById("content");
-    if (contentEl.style.display === "none") return;
+    const target = visibleContentEl();
+    if (target.style.display === "none") return;
     e.preventDefault();
     const range = document.createRange();
-    range.selectNodeContents(contentEl);
+    range.selectNodeContents(target);
     const selection = window.getSelection();
     selection.removeAllRanges();
     selection.addRange(range);
@@ -90,9 +81,8 @@ async function init() {
   const copyBtn = document.getElementById("copy-btn");
   copyBtn.style.display = "inline-block";
   copyBtn.addEventListener("click", () => {
-    const result = currentResult();
-    if (!result?.ok) return;
-    navigator.clipboard.writeText(result.text).then(() => {
+    if (!mdResult?.ok) return;
+    navigator.clipboard.writeText(mdResult.text).then(() => {
       copyBtn.textContent = "Copied";
       copyBtn.classList.add("copied");
       setTimeout(() => {
@@ -111,7 +101,14 @@ async function init() {
   });
 
   selectContentOnly();
-  await ensureLoaded();
+
+  render();
+  mdResult = await chrome.runtime.sendMessage({
+    type: "GET_MARKDOWN_CONTENT",
+    tabId: sourceTabId,
+    url: sourceUrl,
+  });
+  render();
 }
 
 init();

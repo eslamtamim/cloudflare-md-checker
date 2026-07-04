@@ -1,7 +1,6 @@
 // Cache tab results in memory (service worker lifetime)
 const tabCache = new Map();
 const mdContentCache = new Map();
-const rawTextCache = new Map();
 
 // Track which tab is showing the viewer for which source tab
 const sourceToViewer = new Map();
@@ -38,7 +37,6 @@ async function setBadge(tabId, state) {
 async function checkMarkdownSupport(tabId, url) {
   // Mark as checking
   mdContentCache.delete(tabId);
-  rawTextCache.delete(tabId);
   tabCache.set(tabId, { status: "checking", url });
   await setIcon(tabId, "inactive");
   await setBadge(tabId, "inactive");
@@ -122,25 +120,6 @@ async function getMarkdownContent(tabId, url) {
   }
 }
 
-async function getRawTextContent(tabId, url) {
-  const cached = rawTextCache.get(tabId);
-  if (cached) return cached;
-
-  try {
-    const res = await fetch(url);
-    const text = await res.text();
-    const result = {
-      ok: true,
-      text,
-      contentType: res.headers.get("content-type") || "",
-    };
-    rawTextCache.set(tabId, result);
-    return result;
-  } catch (e) {
-    return { ok: false, error: e.message };
-  }
-}
-
 async function toggleViewer(sourceTabId, sourceUrl) {
   const existingViewerTabId = sourceToViewer.get(sourceTabId);
   if (existingViewerTabId) {
@@ -217,9 +196,6 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
   if (message.type === "GET_MARKDOWN_CONTENT") {
     getMarkdownContent(message.tabId, message.url).then(sendResponse);
-  }
-  if (message.type === "GET_RAW_TEXT_CONTENT") {
-    getRawTextContent(message.tabId, message.url).then(sendResponse);
   }
   if (message.type === "TOGGLE_VIEWER") {
     toggleViewer(message.tabId, message.url).then(() => sendResponse({ ok: true }));
