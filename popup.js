@@ -178,11 +178,11 @@ async function init() {
       tabId: activeTabId,
       url: activeUrl,
     });
-    const viewUrl =
-      chrome.runtime.getURL("view.html") +
-      "?tabId=" + activeTabId +
-      "&url=" + encodeURIComponent(activeUrl);
-    chrome.tabs.create({ url: viewUrl });
+    await chrome.runtime.sendMessage({
+      type: "TOGGLE_VIEWER",
+      tabId: activeTabId,
+      url: activeUrl,
+    });
   });
 }
 
