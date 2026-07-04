@@ -1,5 +1,6 @@
 // Cache tab results in memory (service worker lifetime)
 const tabCache = new Map();
+const mdContentCache = new Map();
 
 const ICONS = {
   active:   { 16: "icons/active.png",   48: "icons/active.png",   128: "icons/active.png" },
@@ -31,6 +32,7 @@ async function setBadge(tabId, state) {
 
 async function checkMarkdownSupport(tabId, url) {
   // Mark as checking
+  mdContentCache.delete(tabId);
   tabCache.set(tabId, { status: "checking", url });
   await setIcon(tabId, "inactive");
   await setBadge(tabId, "inactive");
@@ -95,6 +97,25 @@ async function checkMarkdownSupport(tabId, url) {
   }
 }
 
+async function getMarkdownContent(tabId, url) {
+  const cached = mdContentCache.get(tabId);
+  if (cached) return cached;
+
+  try {
+    const res = await fetch(url, { headers: { Accept: "text/markdown" } });
+    const text = await res.text();
+    const result = {
+      ok: true,
+      text,
+      contentType: res.headers.get("content-type") || "",
+    };
+    mdContentCache.set(tabId, result);
+    return result;
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete") return;
   const url = tab.url || "";
@@ -116,6 +137,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "GET_TAB_RESULT") {
     const result = tabCache.get(message.tabId) || { status: "unknown" };
     sendResponse(result);
+  }
+  if (message.type === "GET_MARKDOWN_CONTENT") {
+    getMarkdownContent(message.tabId, message.url).then(sendResponse);
   }
   return true; // keep channel open for async
 });
