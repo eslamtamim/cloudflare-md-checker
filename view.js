@@ -10,6 +10,38 @@ function visibleContentEl() {
     : document.getElementById("content");
 }
 
+// Many Markdown-for-Agents responses lead with a YAML frontmatter block
+// (---\ntitle: ...\n---). That's not CommonMark, and left in place it
+// confuses marked's Setext-heading detection (a paragraph immediately
+// followed by a line of dashes becomes an <h2>). Pull it out before
+// parsing and show title/description as a small header instead.
+function splitFrontmatter(text) {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(text);
+  if (!match) return { meta: null, body: text };
+
+  const meta = {};
+  for (const line of match[1].split(/\r?\n/)) {
+    const idx = line.indexOf(":");
+    if (idx === -1) continue;
+    meta[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+  }
+
+  return { meta, body: text.slice(match[0].length) };
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function frontmatterHtml(meta) {
+  // Skip the title: the body almost always repeats it as its own heading,
+  // and showing both reads as a duplicated header.
+  if (!meta.description) return "";
+  return `<p class="fm-description">${escapeHtml(meta.description)}</p>`;
+}
+
 function render() {
   const statusEl = document.getElementById("status");
   const contentEl = document.getElementById("content");
@@ -41,7 +73,9 @@ function render() {
   if (mode === "rendered") {
     contentEl.style.display = "none";
     renderedEl.style.display = "block";
-    renderedEl.innerHTML = DOMPurify.sanitize(marked.parse(mdResult.text));
+    const { meta, body } = splitFrontmatter(mdResult.text);
+    const bodyHtml = DOMPurify.sanitize(marked.parse(body));
+    renderedEl.innerHTML = (meta ? frontmatterHtml(meta) : "") + bodyHtml;
   } else {
     renderedEl.style.display = "none";
     contentEl.style.display = "block";
