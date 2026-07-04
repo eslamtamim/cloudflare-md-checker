@@ -7,6 +7,9 @@ function buildCurlCommand(url) {
   return `curl -s -o /dev/null -D - \\\n  -H 'Accept: text/markdown' \\\n  '${url}'`;
 }
 
+let activeTabId = null;
+let activeUrl = null;
+
 function setDot(state) {
   const dot = document.getElementById("header-dot");
   dot.className = "header-dot";
@@ -14,7 +17,7 @@ function setDot(state) {
   if (state === "pulse") dot.classList.add("pulse");
 }
 
-function render(result, url) {
+function render(result, url, tabIdParam) {
   const block = document.getElementById("status-block");
   const labelEl = document.getElementById("status-label");
   const textEl = document.getElementById("status-text");
@@ -97,6 +100,17 @@ function render(result, url) {
     curlSection.style.display = "block";
     document.getElementById("curl-code").textContent = buildCurlCommand(targetUrl);
   }
+
+  // Markdown actions
+  const copyMdBtn = document.getElementById("copy-md-btn");
+  const viewMdBtn = document.getElementById("view-md-btn");
+  const mdSupported = result.status === "done" && result.supported === true;
+  copyMdBtn.disabled = !mdSupported;
+  viewMdBtn.disabled = !mdSupported;
+  if (mdSupported) {
+    activeTabId = tabIdParam;
+    activeUrl = targetUrl;
+  }
 }
 
 async function init() {
@@ -108,7 +122,7 @@ async function init() {
     tabId: tab.id,
   });
 
-  render(result, tab.url);
+  render(result, tab.url, tab.id);
 
   document.getElementById("copy-btn").addEventListener("click", () => {
     const text = document.getElementById("curl-code").textContent;
@@ -134,6 +148,41 @@ async function init() {
     }
     chrome.tabs.reload(currentTab.id);
     window.close();
+  });
+
+  document.getElementById("copy-md-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("copy-md-btn");
+    const response = await chrome.runtime.sendMessage({
+      type: "GET_MARKDOWN_CONTENT",
+      tabId: activeTabId,
+      url: activeUrl,
+    });
+    btn.classList.remove("copied", "failed");
+    if (response?.ok) {
+      await navigator.clipboard.writeText(response.text);
+      btn.textContent = "Copied";
+      btn.classList.add("copied");
+    } else {
+      btn.textContent = "Failed";
+      btn.classList.add("failed");
+    }
+    setTimeout(() => {
+      btn.textContent = "Copy MD";
+      btn.classList.remove("copied", "failed");
+    }, 1500);
+  });
+
+  document.getElementById("view-md-btn").addEventListener("click", async () => {
+    await chrome.runtime.sendMessage({
+      type: "GET_MARKDOWN_CONTENT",
+      tabId: activeTabId,
+      url: activeUrl,
+    });
+    const viewUrl =
+      chrome.runtime.getURL("view.html") +
+      "?tabId=" + activeTabId +
+      "&url=" + encodeURIComponent(activeUrl);
+    chrome.tabs.create({ url: viewUrl });
   });
 }
 
